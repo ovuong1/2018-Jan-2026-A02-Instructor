@@ -31,6 +31,14 @@ void Main()
 	//	Rule:	artistID must be valid
 	codeBehind.GetArtist(0);
 	codeBehind.ErrorDetails.Dump("Artist ID must be valid");
+
+	//	no artist were found with the artist id provided
+	codeBehind.GetArtist(100000);
+	codeBehind.ErrorDetails.Dump("No Artist ID 100000");
+
+	//	Pass
+	codeBehind.GetArtist(1);
+	codeBehind.Artist.Dump("Pass - Valid ID");	
 	#endregion
 }
 
