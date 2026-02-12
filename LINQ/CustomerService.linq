@@ -28,7 +28,7 @@ using BYSResults;
 void Main()
 {
 	CodeBehind codeBehind = new CodeBehind(this); // “this” is LINQPad’s auto Context
-#region GetCustomer
+	#region GetCustomer
 	//	Fail
 	//	rule:	customerID must be valid
 	codeBehind.GetCustomer(0);
@@ -37,14 +37,14 @@ void Main()
 	//	rule:	customer id must be valid
 	codeBehind.GetCustomer(100000);
 	codeBehind.ErrorDetails.Dump("No customer was found for customer ID: 100000");
-	
+
 	//	Pass:	valid customer ID
 	codeBehind.GetCustomer(1);
 	codeBehind.Customer.Dump("Pass - Valid customer ID");
-	
+
 	#endregion
-	
-	
+
+
 }
 
 // ———— PART 2: Code Behind → Code Behind Method ————
@@ -87,6 +87,33 @@ public class CodeBehind(TypedDataContext context)
 		try
 		{
 			var result = YourService.GetCustomer(customerID);
+			if (result.IsSuccess)
+			{
+				Customer = result.Value;
+			}
+			else
+			{
+				errorDetails = GetErrorMessages(result.Errors.ToList());
+			}
+		}
+		catch (Exception ex)
+		{
+			// capture any exception message for display
+			errorMessage = ex.Message;
+		}
+	}
+
+	public void AddEditCustomer(CustomerEditView editCustomer)
+	{
+		//	clear previous error details and messages
+		errorDetails.Clear();
+		errorMessage = string.Empty;
+		feedbackMessage = string.Empty;
+
+		//	wrap the service call in a try/catch to handle unexpected exceptions
+		try
+		{
+			var result = YourService.AddEditCustomer(editCustomer);
 			if (result.IsSuccess)
 			{
 				Customer = result.Value;
@@ -176,7 +203,7 @@ public class Library
 		//	return the result
 		return result.WithValue(customer);
 	}
-	
+
 	public Result<CustomerEditView> AddEditCustomer(CustomerEditView editCustomer)
 	{
 		//	Create a Result container that will hold either a 
@@ -187,16 +214,16 @@ public class Library
 		#region Business Rules
 		//	These are processing rules that need to be satisfied for valid data
 		//	rule:	customer cannot be null
-		if(editCustomer == null)
+		if (editCustomer == null)
 		{
 			//	need to exit because we have no customer view model to add/edit
 			return result.AddError(new Error("Missing Information",
 							"No customer was supply"));
 		}
-		
+
 		//	rule:	first and last name, phone number and email are required
 		//				(not empty)
-		if(string.IsNullOrWhiteSpace(editCustomer.FirstName))
+		if (string.IsNullOrWhiteSpace(editCustomer.FirstName))
 		{
 			result.AddError(new Error("Missing Information",
 									"First name is required"));
@@ -222,28 +249,86 @@ public class Library
 
 		//	rule: first name, last name and phone number cannot be duplicated 
 		//			found more than once
-		if(editCustomer.CustomerID == 0)
+		if (editCustomer.CustomerID == 0)
 		{
 			bool customerExist = _hogWildContext.Customers.Any(
 					c => c.FirstName.ToUpper() == editCustomer.FirstName.ToUpper() &&
 					c.LastName.ToUpper() == editCustomer.LastName.ToUpper() &&
 					c.Phone == editCustomer.Phone);
-					
+
 			if (customerExist)
 			{
 				result.AddError(new Error("Existing Customer",
 								"Customer already exist in the database and cannot be enter again"));
 			}
 		}
-		
+
 		//	exit if we have any outstanding errors
-		if(result.IsFailure)
+		if (result.IsFailure)
 		{
 			return result;
 		}
-
 		#endregion
+
+		//	entity/record
+		Customer customer = _hogWildContext.Customers
+								//  assuming not deleted/RemoveFromViewFlag customer
+								.Where(c => c.CustomerID == editCustomer.CustomerID)
+								.Select(c => c).FirstOrDefault();
+
+		//	if the customer was not found (CustomerID == 0)
+		//		then we are dealing with a new customer
+		if (customer == null)
+		{
+			customer = new Customer();
+		}
+
+		//	NOTE:	You do not have to update the primary key CustomerID
+		//				This is trye for all primary for any view model
+		//			-	If is it is a new customer, the customer ID will be "0"
+		//			- If it is an existing customer, there not need to update it as the 
+		//				entity has the primary key.
+
+		customer.FirstName = editCustomer.FirstName;
+		customer.LastName = editCustomer.LastName;
+		customer.Address1 = editCustomer.Address1;
+		customer.Address2 = editCustomer.Address2;
+		customer.City = editCustomer.City;
+		customer.ProvStateID = editCustomer.ProvStateID;
+		customer.CountryID = editCustomer.CountryID;
+		customer.PostalCode = editCustomer.PostalCode;
+		customer.Phone = editCustomer.Phone;
+		customer.Email = editCustomer.Email;
+		customer.StatusID = editCustomer.StatusID;
+		customer.RemoveFromViewFlag = editCustomer.RemoveFromViewFlag;
 		
+		
+		//	new customer
+		if(customer.CustomerID == 0)
+		{
+			_hogWildContext.Customers.Add(customer);
+		}
+		else
+		{
+			//	existing customer
+			_hogWildContext.Customers.Update(customer);
+		}
+		
+		try
+		{
+			//	NOTE:	YOU CAN ONLY HAVE ONE SAVE CHANGES IN A METHOD!!!!
+			_hogWildContext.SaveChanges();
+		}
+		catch(Exception ex)
+		{
+			//	clear changes to maintain data integrity
+			_hogWildContext.ChangeTracker.Clear();
+			//	we do not have to throw an exception, just need to log the error message
+			return result.AddError(new Error("Error Saving Changes", ex.InnerException.Message));
+		}
+		
+		//	need to refresh the customer information
+		return GetCustomer(customer.CustomerID);
 	}
 
 }
