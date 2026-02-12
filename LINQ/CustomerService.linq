@@ -1,14 +1,17 @@
 <Query Kind="Program">
   <Connection>
-    <ID>53bfbe22-8f63-4146-92e7-5b76f960a947</ID>
-    <NamingServiceVersion>2</NamingServiceVersion>
+    <ID>9233bff9-8346-4983-884e-a6517dadc5d3</ID>
+    <NamingServiceVersion>3</NamingServiceVersion>
     <Persist>true</Persist>
-    <Server>.</Server>
+    <Driver Assembly="(internal)" PublicKeyToken="no-strong-name">LINQPad.Drivers.EFCore.DynamicDriver</Driver>
     <AllowDateOnlyTimeOnly>true</AllowDateOnlyTimeOnly>
-    <DeferDatabasePopulation>true</DeferDatabasePopulation>
+    <Server>.</Server>
     <Database>OLTP-DMIT2018</Database>
+    <DisplayName>OLTP-DMIT2018-Entity</DisplayName>
     <DriverData>
-      <LegacyMFA>false</LegacyMFA>
+      <EncryptSqlTraffic>True</EncryptSqlTraffic>
+      <PreserveNumeric1>True</PreserveNumeric1>
+      <EFProvider>Microsoft.EntityFrameworkCore.SqlServer</EFProvider>
     </DriverData>
   </Connection>
   <NuGetReference>BYSResults</NuGetReference>
@@ -25,7 +28,7 @@ using BYSResults;
 void Main()
 {
 	CodeBehind codeBehind = new CodeBehind(this); // “this” is LINQPad’s auto Context
-
+#region GetCustomer
 	//	Fail
 	//	rule:	customerID must be valid
 	codeBehind.GetCustomer(0);
@@ -38,6 +41,10 @@ void Main()
 	//	Pass:	valid customer ID
 	codeBehind.GetCustomer(1);
 	codeBehind.Customer.Dump("Pass - Valid customer ID");
+	
+	#endregion
+	
+	
 }
 
 // ———— PART 2: Code Behind → Code Behind Method ————
@@ -168,6 +175,75 @@ public class Library
 
 		//	return the result
 		return result.WithValue(customer);
+	}
+	
+	public Result<CustomerEditView> AddEditCustomer(CustomerEditView editCustomer)
+	{
+		//	Create a Result container that will hold either a 
+		//		CustomerEditView object on success or any accumulated errors 
+		//		on failure
+		var result = new Result<CustomerEditView>();
+
+		#region Business Rules
+		//	These are processing rules that need to be satisfied for valid data
+		//	rule:	customer cannot be null
+		if(editCustomer == null)
+		{
+			//	need to exit because we have no customer view model to add/edit
+			return result.AddError(new Error("Missing Information",
+							"No customer was supply"));
+		}
+		
+		//	rule:	first and last name, phone number and email are required
+		//				(not empty)
+		if(string.IsNullOrWhiteSpace(editCustomer.FirstName))
+		{
+			result.AddError(new Error("Missing Information",
+									"First name is required"));
+		}
+
+		if (string.IsNullOrWhiteSpace(editCustomer.LastName))
+		{
+			result.AddError(new Error("Missing Information",
+									"Last name is required"));
+		}
+
+		if (string.IsNullOrWhiteSpace(editCustomer.Phone))
+		{
+			result.AddError(new Error("Missing Information",
+									"Phone number is required"));
+		}
+
+		if (string.IsNullOrWhiteSpace(editCustomer.Email))
+		{
+			result.AddError(new Error("Missing Information",
+									"Email is required"));
+		}
+
+		//	rule: first name, last name and phone number cannot be duplicated 
+		//			found more than once
+		if(editCustomer.CustomerID == 0)
+		{
+			bool customerExist = _hogWildContext.Customers.Any(
+					c => c.FirstName.ToUpper() == editCustomer.FirstName.ToUpper() &&
+					c.LastName.ToUpper() == editCustomer.LastName.ToUpper() &&
+					c.Phone == editCustomer.Phone);
+					
+			if (customerExist)
+			{
+				result.AddError(new Error("Existing Customer",
+								"Customer already exist in the database and cannot be enter again"));
+			}
+		}
+		
+		//	exit if we have any outstanding errors
+		if(result.IsFailure)
+		{
+			return result;
+		}
+
+		#endregion
+		
 	}
 
 }
