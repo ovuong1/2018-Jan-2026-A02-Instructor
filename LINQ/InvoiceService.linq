@@ -1,7 +1,7 @@
 <Query Kind="Program">
   <Connection>
-    <ID>a8281abf-dd8f-4afd-9131-4df1f6179d3d</ID>
-    <NamingServiceVersion>3</NamingServiceVersion>
+    <ID>813ec320-8be0-4b91-8ec8-c1549d53aaea</ID>
+    <NamingServiceVersion>2</NamingServiceVersion>
     <Persist>true</Persist>
     <Driver Assembly="(internal)" PublicKeyToken="no-strong-name">LINQPad.Drivers.EFCore.DynamicDriver</Driver>
     <AllowDateOnlyTimeOnly>true</AllowDateOnlyTimeOnly>
@@ -703,7 +703,7 @@ public class Library
 		if (invoiceView == null)
 		{
 			//	need to exit because we have no invoice record
-			return result.AddError(new Error("Missing Invoice", "No invoice was supply");
+			return result.AddError(new Error("Missing Invoice", "No invoice was supply"));
 		}
 
 		//	rule; customer ID must be supply
@@ -823,14 +823,14 @@ public class Library
 				invoiceLine = new InvoiceLine();
 				invoiceLine.PartID = invoiceLineView.PartID;
 			}
-			
+
 			//	update the invoice line properties from the view model
 			invoiceLine.Quantity = invoiceLineView.Quantity;
 			invoiceLine.Price = invoiceLineView.Price;
 			invoiceLine.RemoveFromViewFlag = invoiceLineView.RemoveFromViewFlag;
-			
+
 			//	handle new or existing line item
-			if(invoiceLine.InvoiceLineID == 0)
+			if (invoiceLine.InvoiceLineID == 0)
 			{
 				invoice.InvoiceLines.Add(invoiceLine);
 			}
@@ -839,11 +839,11 @@ public class Library
 				//	update the database record with the existing line item
 				_hogWildContext.InvoiceLines.Update(invoiceLine);
 			}
-			
-			
+
+
 			//	need to update the subtotal and tax if the invoice line
 			//		is not set to removed from view
-			if(invoiceLine.RemoveFromViewFlag == false)
+			if (invoiceLine.RemoveFromViewFlag == false)
 			{
 				invoice.SubTotal += invoiceLine.Quantity * invoiceLine.Price;
 				bool isTaxable = _hogWildContext.Parts
@@ -853,35 +853,35 @@ public class Library
 				invoice.Tax += isTaxable ? invoiceLine.Quantity * invoiceLine.Price * 0.05m
 											: 0;
 			}
-			
-			//	if we have a new invoice, we add it to the database
-			if(invoice.InvoiceID == 0)
-			{
-				//	add the invoice to the invoice table
-				_hogWildContext.Invoices.Add(invoice);
-			}
-			else
-			{
-				//	update the invoice in the invoice table
-				_hogWildContext.Invoices.Update(invoice);
-			}
-			
-			try
-			{
-				//	NOTE: YOU CAN ONLY HAVE ONE SAVE CHANGES IN A METHOD
-				_hogWildContext.SaveChanges();
-			}
-			catch(Exception ex)
-			{
-				//	clear changes to maintain data integrity
-				_hogWildContext.ChangeTracker.Clear();
-				
-				//`we do not need to throw an excpetion, just need to log the error message
-				return result.AddError(new Error("Error Saving Changes",
-								ex.InnerException.Message));
-			}
-			return GetInvoice(invoice.InvoiceID, invoice.CustomerID, invoice.EmployeeID);
 		}
+
+		//	if we have a new invoice, we add it to the database
+		if (invoice.InvoiceID == 0)
+		{
+			//	add the invoice to the invoice table
+			_hogWildContext.Invoices.Add(invoice);
+		}
+		else
+		{
+			//	update the invoice in the invoice table
+			_hogWildContext.Invoices.Update(invoice);
+		}
+
+		try
+		{
+			//	NOTE: YOU CAN ONLY HAVE ONE SAVE CHANGES IN A METHOD
+			_hogWildContext.SaveChanges();
+		}
+		catch (Exception ex)
+		{
+			//	clear changes to maintain data integrity
+			_hogWildContext.ChangeTracker.Clear();
+
+			//`we do not need to throw an excpetion, just need to log the error message
+			return result.AddError(new Error("Error Saving Changes",
+							ex.InnerException.Message));
+		}
+		return GetInvoice(invoice.InvoiceID, invoice.CustomerID, invoice.EmployeeID);
 	}
 
 	//	get the customer full name
