@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using HogWildSystem.DAL;
+using HogWildSystem.BLL;
 
 namespace HogWildSystem
 {
@@ -27,6 +28,21 @@ namespace HogWildSystem
             // configures the options for the DbContext, including specifying the database
             // connection string.
             services.AddDbContext<HogWildContext>(options);
+
+            //  adding any services that you create in the class library (BLL)
+            //  using .AddTransient<t>(...)
+            //  working version
+            services.AddTransient<WorkingVersionService>((ServiceProvider) =>
+            {
+                //  Retrieve an instance of HogWildContext from the service provider
+                var context = ServiceProvider.GetService<HogWildContext>();
+
+                //  Create a new instance of WOrkingVerionService,
+                //      passing the HogWildContext instance as a parameter
+                return new WorkingVersionService(context);
+            });
         }
+
+
     }
 }
