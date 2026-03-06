@@ -26,7 +26,7 @@ namespace HogWildApp.Components.Pages.SamplePages
         private bool hasFeedback => !string.IsNullOrWhiteSpace(feedbackMessaage);
 
         //  has error
-        private bool hasError => !string.IsNullOrWhiteSpace(errorMessage);
+        private bool hasError => !string.IsNullOrWhiteSpace(errorMessage) || errorDetails.Count > 0;
 
         //  error details
         private List<string> errorDetails = new();
