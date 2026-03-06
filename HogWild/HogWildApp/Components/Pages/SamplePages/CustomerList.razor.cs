@@ -51,6 +51,7 @@ namespace HogWildApp.Components.Pages.SamplePages
             errorDetails.Clear();
             errorMessage = string.Empty;
             feedbackMessage = string.Empty;
+            noRecords = false;
 
             //	wrap the service call in a try/catch to handle unexpected exceptions
             try
@@ -62,6 +63,12 @@ namespace HogWildApp.Components.Pages.SamplePages
                 }
                 else
                 {
+                    Customers.Clear();
+                    //  set noRecords
+                    if (result.Errors.Any(e => e.Code == "No Customers"))
+                    {
+                        noRecords = true;
+                    }
                     errorDetails = BlazorHelperClass.GetErrorMessages(result.Errors.ToList());
                 }
             }

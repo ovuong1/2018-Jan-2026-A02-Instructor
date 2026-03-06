@@ -23,6 +23,6 @@ namespace HogWildSystem.ViewModels
         //	status ID.	Status value will uswe a dropdown and a "LookupView" Model
         public int StatusID { get; set; }
         //	Invoice.SubTotal + Invoice.Tax
-        public decimal TotalSales { get; set; } = 0;
+        public decimal? TotalSales { get; set; } = 0;
     }
 }
